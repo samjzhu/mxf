@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<head>
+    <title>Mobile File Exchange</title>
+    <script src="/static/jquery.min.js"></script>
+    <script src="/static/qrcode.min.js"></script>
+    <link rel="stylesheet" href="/static/w3.css"/>
+
+    <script>
+
+
+        $(function() {
+            let qrcode = new QRCode('qrcode', {
+            width: 64,
+            height: 64,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+            function show_qrcode(txt) {
+                document.getElementById('qr_popup').style.display = 'block';
+                qrcode.makeCode(txt);
+            }
+
+
+
+            // Open file selector on div click
+            $("#uploadfile").click(function(){
+                $("#file").click();
+            });
+
+            // file selected
+            $("#fileInput").change(function(){
+                var fd = new FormData();
+                var totalFiles = document.getElementById('fileInput').files.length;
+                for (var index = 0; index < totalFiles; index++) {
+                    fd.append("file", document.getElementById('fileInput').files[index]);
+                }
+                //var files = $('#file')[0].files[0];
+                //fd.append('file',fd);
+
+                uploadData(fd);
+            });
+            $('.btnPopupQR').click(function() {
+                const txt = $(this).closest('td').siblings().find('a').attr("href");
+                show_qrcode(txt);
+            });
+        });
+
+        // Sending AJAX request and upload file
+        function uploadData(formdata){
+            $.ajax({
+                url: 'upload',
+                type: 'post',
+                data: formdata,
+                contentType: false,
+                processData: false,
+                dataType: 'json'
+            }).done(function(response){
+                res_text = "Upload done: \n";
+                for (let res of response) {
+                    res_text+= res.name + "\n ";
+                }
+                alert(res_text);
+                window.location.reload();
+            });
+        }
+
+
+    </script>
+</head>
+<body>
+
+<div class="w3-bar w3-blue upload-area"  >
+    <!-- Drag and Drop container-->
+    <div class="w3-bar-item "  id="host-qr">
+        <img src="data:image/png;base64,{{host_url_qr}}" title="{{host_url}}"  width="32px" height="32px" alt="host qr"/>
+    </div>
+    <div class = "w3-bar-item"><input type="file" name="files[]" id="fileInput" multiple="multiple"></div>
+</div>
+
+<div>
+<table class="w3-table-all">
+    {% for f in file_list %}
+    <tr>
+        <td><a class="linkToFile" href="{{f.url}}">{{ f.name }}</a></td>
+        <td class="w3-button w3-teal btnPopupQR">QR</td>
+<!--        <td><img src="data:image/png;base64,{{f.qr}}"  width="32px" height="32px" alt="qr"/></td>
+-->
+    </tr>
+    {% endfor %}
+</table>
+</div>
+<div class="w3-container" >
+    <div id="qr_popup" class="w3-modal">
+        <div class="w3-modal-content qr_popup" style="width: 128px;">
+            <div class="w3-container" >
+                        <span onclick="document.getElementById('qr_popup').style.display='none'"
+                              class="w3-button w3-display-topright">&times;</span>
+                <div id="qrcode"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
