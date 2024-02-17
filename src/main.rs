@@ -2,6 +2,7 @@ use std::{env, fs};
 use std::ffi::OsString;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::Path;
+use std::process::Command;
 use actix_web::{web, get, App, Responder, HttpResponse, HttpServer, middleware, HttpRequest, Error};
 use actix_web::web::{Json};
 use actix_multipart::form::{
@@ -28,7 +29,7 @@ lazy_static!{
       Ok(t) => t,
       Err(e) => {
         println!("Parsing error(s): {}", e);
-        ::std::process::exit(1);
+        std::process::exit(1);
       }
     };
     let home_temp_str = include_str!("../templates/home.html");
@@ -150,7 +151,7 @@ fn saving_files(files: Vec<TempFile>) -> Vec<FileUploaded> {
         let url = saved_file_url(f_name.to_owned().into());
         let saved_file = FileUploaded { name: f_name, url };
         file_name_list.push(saved_file);
-        log::info!("saving to {path}");
+        info!("saving to {path}");
         f.file.persist(path).unwrap();
     }
     return file_name_list;
@@ -172,9 +173,24 @@ async fn main() -> std::io::Result<()> {
                              run_parm.port
     );
 
-    log::info!(
+    info!(
         "starting HTTP server at {}", host_url
         );
+    let output = if cfg!(target_os = "windows") {
+        Command::new("cmd")
+            .args(["/C","start", "msedge", &host_url])
+            .output()
+            .expect("Failed to start firefox")
+
+    } else {
+        Command::new("sh")
+            .arg("-c")
+            .arg("firefox")
+            .arg(&host_url)
+            .output()
+            .expect("failed to execute process")
+    };
+    output.stdout;
     HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
